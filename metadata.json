@@ -1,0 +1,6 @@
+{
+  "name": "PoshanSetu CDPO Monitoring Dashboard",
+  "description": "Real-time Balbhog stock monitoring and distribution audit dashboard for Child Development Project Officer (CDPO) and Collector Office Anand (Gujarat).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

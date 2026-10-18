@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="gu" id="htmlRoot" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">પોષણસેતુ મોનિટરિંગ ડેશબોર્ડ | CDPO અને કલેક્ટર કચેરી, આણંદ</title>
+  <meta name="description" content="બાળભોગ લાઈવ સ્ટોક મોનિટરિંગ અને રિયલ-ટાઇમ ઓડિટ ડેશબોર્ડ - બાળ વિકાસ યોજના અધિકારી (CDPO) અને કલેક્ટર કચેરી, આણંદ" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Gujarati -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '"Noto Sans Gujarati"', 'system-ui', 'sans-serif'],
+            gujarati: ['"Noto Sans Gujarati"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            gov: {
+              navy: '#0f172a',
+              slate: '#1e293b',
+              gold: '#d97706',
+              lightgold: '#fef3c7',
+              border: '#334155',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase App & Realtime Database SDKs (Compat via CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <!-- jsPDF & AutoTable via CDN for formal PDF audit report export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    /* Subtle glow animation for newly prepended audit table rows */
+    @keyframes rowGlow {
+      0% {
+        background-color: #fef08a; /* Amber-200 highlight */
+        box-shadow: inset 0 0 12px rgba(202, 138, 4, 0.45);
+        transform: translateY(-2px);
+      }
+      30% {
+        background-color: #fef9c3; /* Amber-100 */
+      }
+      100% {
+        background-color: transparent;
+        box-shadow: none;
+        transform: translateY(0);
+      }
+    }
+
+    .glow-new-row {
+      animation: rowGlow 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Live Blinking Green Dot */
+    @keyframes liveBlink {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      }
+      50% {
+        opacity: 0.35;
+        transform: scale(0.92);
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+      }
+    }
+
+    .live-blinking-dot {
+      animation: liveBlink 1.4s ease-in-out infinite;
+    }
+
+    /* Urgent Pulse for Low Stock Alert */
+    @keyframes urgentPulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.02);
+      }
+    }
+
+    .urgent-pulse {
+      animation: urgentPulse 1.6s ease-in-out infinite;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-100 antialiased selection:bg-amber-100 selection:text-amber-900">
+
+  <!-- GOVERNMENT TOP EMBLEM & TRICOLOR RIBBON -->
+  <div class="h-1.5 w-full bg-gradient-to-r from-orange-500 via-white to-emerald-600"></div>
+
+  <!-- HEADER: DARK SLATE GOV PORTAL HEADER WITH GUJARAT STYLING -->
+  <header class="bg-gov-navy text-white border-b border-gov-border shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        
+        <!-- Left: Emblem, Gujarat Government & PoshanSetu CDPO Portal Identity -->
+        <div class="flex items-center gap-3.5">
+          <!-- Official PoshanSetu Logo Badge -->
+          <div class="w-13 h-13 rounded-xl bg-white p-1 flex items-center justify-center shrink-0 shadow-md border border-slate-700/60 overflow-hidden">
+            <img src="/poshansetu-logo.svg" alt="Poshan Setu Logo" class="w-full h-full object-contain" />
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 text-xs font-semibold text-amber-400 tracking-wide uppercase">
+              <span id="txtGovTitle">ગુજરાત સરકાર</span>
+              <span class="text-slate-500">·</span>
+              <span id="txtGovSub">Government of Gujarat</span>
+              <span class="text-slate-500">·</span>
+              <span id="txtDept" class="text-slate-300 font-normal">WCDD (આઈ.સી.ડી.એસ)</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <span id="txtPortalTitle">પોષણસેતુ ડેસ્કટોપ મોનિટરિંગ પોર્ટલ</span>
+            </h1>
+            <p id="txtPortalSubtitle" class="text-xs text-slate-300 mt-0.5">
+              બાળ વિકાસ યોજના અધિકારી (CDPO) અને કલેક્ટર કચેરી, આણંદ — બાળભોગ લાઇવ સ્ટોક ટ્રેકર
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Connection status, Language Switcher, Clock & Controls -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          
+          <!-- LANGUAGE SWITCHER BUTTON (Gujarati <-> English) -->
+          <button id="langToggleBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-sm transition-all cursor-pointer border border-amber-300" title="Switch Language / ભાષા બદલો">
+            <i data-lucide="languages" class="w-4 h-4 text-slate-950"></i>
+            <span id="langBtnText">English</span>
+          </button>
+
+          <!-- Realtime Connection Pill -->
+          <div id="connectionStatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-800/80 border border-slate-700 text-xs">
+            <span id="connectionDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-blinking-dot"></span>
+            <span id="connectionText" class="font-medium text-emerald-400">RTDB કનેક્ટેડ (Live)</span>
+          </div>
+
+          <!-- Digital Clock (IST) -->
+          <div class="hidden sm:flex flex-col text-right px-3 py-1 rounded bg-slate-800/50 border border-slate-700/60 text-xs">
+            <span id="txtClockLabel" class="text-slate-400 font-medium">ભારતીય માનક સમય (IST)</span>
+            <span id="liveClock" class="font-mono text-slate-100 font-semibold tabular-nums text-sm">--:--:--</span>
+          </div>
+
+
+          <!-- DOWNLOAD FORMAL PDF REPORT BUTTON -->
+          <button id="exportPdfBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-700 hover:bg-red-600 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer" title="સત્તાવાર PDF ઓડિટ રિપોર્ટ ડાઉનલોડ કરો">
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <span id="txtPdfBtn">PDF રિપોર્ટ</span>
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- SUBHEADER INFO STRIP -->
+  <div class="bg-slate-800 text-slate-300 border-b border-slate-700 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-4">
+        <span class="flex items-center gap-1 text-slate-400">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span id="txtDistrict">જિલ્લો: <strong class="text-white">આણંદ</strong></span>
+        </span>
+        <span class="text-slate-600">|</span>
+        <span id="txtTaluka">તાલુકો: <strong class="text-white">આણંદ ગ્રામ્ય</strong></span>
+        <span class="text-slate-600">|</span>
+        <span id="txtSector">સેક્ટર: <strong class="text-white">વડતાલ-૧</strong></span>
+        <span class="text-slate-600">|</span>
+        <span id="txtProject">પ્રોજેક્ટ: <strong class="text-white">ICDS પોષણસેતુ</strong></span>
+      </div>
+      <div class="text-slate-400 flex items-center gap-2">
+        <i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>
+        <span><span id="txtEndpoint">એન્ડપોઇન્ટ:</span> <code class="font-mono text-slate-300 text-[11px]">/active_stock</code></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
+
+    <!-- COLLAPSIBLE MOBILE APP SIMULATOR DRAWER FOR TESTING / DEMONSTRATION -->
+    <div id="simulatorDrawer" class="hidden bg-amber-50 border border-amber-300 rounded-lg p-4 shadow-sm transition-all">
+      <div class="flex items-start justify-between gap-4 mb-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-4 h-4 text-amber-700"></i>
+            <h2 id="txtSimDrawerTitle" class="text-sm font-bold text-amber-950">મોબાઈલ એપ્લિકેશન સિન્ક કંટ્રોલર (આંગણવાડી કાર્યકર ટેસ્ટ ટૂલ)</h2>
+          </div>
+          <p id="txtSimDrawerDesc" class="text-xs text-amber-800 mt-0.5">
+            જ્યારે આંગણવાડી કાર્યકર પોતાના ફોનમાંથી સ્ટોક અપડેટ કરશે, ત્યારે આ લેપટોપ સ્ક્રીન કોઈ પેજ રિફ્રેશ વગર આપમેળે અપડેટ થશે. તમે અહીંથી સીધા ટેસ્ટ કરી શકો છો:
+          </p>
+        </div>
+        <button id="closeSimulatorBtn" class="text-amber-800 hover:text-amber-950 p-1 rounded hover:bg-amber-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <!-- Action 1: Inward +25 -->
+        <button id="simInwardBtn" class="flex flex-col items-start p-3 bg-white border border-emerald-300 hover:border-emerald-500 rounded-md shadow-xs hover:bg-emerald-50 text-left transition cursor-pointer">
+          <div class="flex items-center gap-1.5 text-emerald-700 font-semibold text-xs mb-1">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+            <span id="txtSimInwardTitle">આવક નોંધો (+૨૫)</span>
+          </div>
+          <span id="txtSimInwardDesc" class="text-[11px] text-slate-500">નવા સ્ટોક પેકેટ્સ ગોડાઉનમાંથી પ્રાપ્ત થયા (+25 Inward)</span>
+        </button>
+
+        <!-- Action 2: Distribution -10 -->
+        <button id="simDistributeBtn" class="flex flex-col items-start p-3 bg-white border border-blue-300 hover:border-blue-500 rounded-md shadow-xs hover:bg-blue-50 text-left transition cursor-pointer">
+          <div class="flex items-center gap-1.5 text-blue-700 font-semibold text-xs mb-1">
+            <i data-lucide="minus-circle" class="w-3.5 h-3.5"></i>
+            <span id="txtSimDistTitle">બાળભોગ વિતરણ (-૧૦)</span>
+          </div>
+          <span id="txtSimDistDesc" class="text-[11px] text-slate-500">લાભાર્થી બાળકોને વિતરણ કરવામાં આવ્યું (-10 Distributed)</span>
+        </button>
+
+        <!-- Action 3: Trigger Low Stock < 15 -->
+        <button id="simLowStockBtn" class="flex flex-col items-start p-3 bg-white border border-red-300 hover:border-red-500 rounded-md shadow-xs hover:bg-red-50 text-left transition cursor-pointer">
+          <div class="flex items-center gap-1.5 text-red-700 font-semibold text-xs mb-1">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+            <span id="txtSimLowTitle">લો-સ્ટોક ટેસ્ટ કરો (૮ પેકેટ)</span>
+          </div>
+          <span id="txtSimLowDesc" class="text-[11px] text-slate-500">સ્ટોક ૧૫ થી ઓછો કરો (&lt; 15) જેથી લાલ એલર્ટ તપાસાય</span>
+        </button>
+
+        <!-- Action 4: Custom value input -->
+        <div class="p-2.5 bg-white border border-slate-300 rounded-md flex flex-col justify-between">
+          <label id="txtSimCustomLabel" class="text-[11px] font-medium text-slate-700 mb-1">કસ્ટમ સ્ટોક સેટ કરો:</label>
+          <div class="flex items-center gap-1.5">
+            <input id="customBalanceInput" type="number" min="0" max="1000" value="45" class="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-center font-mono" />
+            <button id="setCustomStockBtn" class="flex-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded cursor-pointer">
+              <span id="txtSimCustomSetBtn">સેટ કરો</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP METRICS ROW WITH 3 MANDATORY CARDS -->
+    <section aria-label="મુખ્ય પરિમાણો" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+      <!-- CARD 1: Selected Centre: "૦૪ - વડતાલ (આણંદ)" -->
+      <div class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-5 flex flex-col justify-between hover:border-slate-300 transition-colors">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+            <span id="txtCard1Header" class="font-semibold uppercase tracking-wider text-slate-600">પસંદ કરેલ આંગણવાડી કેન્દ્ર</span>
+            <span id="txtCard1Code" class="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">કેન્દ્ર કોડ: ૦૪</span>
+          </div>
+
+          <h3 id="centreTitle" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <i data-lucide="building-2" class="w-6 h-6 text-amber-600 shrink-0"></i>
+            <span id="txtCard1Title">૦૪ - વડતાલ (આણંદ)</span>
+          </h3>
+
+          <p id="txtCard1Sub" class="text-xs text-slate-500 mt-2">
+            Centre Code: <span class="font-mono font-medium text-slate-700">AW-VAD-04</span> · જિલ્લો: આણંદ
+          </p>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span class="flex items-center gap-1">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span id="txtCard1Worker">કાર્યકર: શ્રીમતી ભાવનાબેન પટેલ</span>
+          </span>
+          <span id="txtCard1Status" class="font-mono text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">સક્રિય (Active)</span>
+        </div>
+      </div>
+
+      <!-- CARD 2: Live Balbhog Balance (Large font with a live blinking green dot) -->
+      <div class="bg-white rounded-xl border border-slate-200/90 shadow-xs p-5 flex flex-col justify-between hover:border-slate-300 transition-colors relative overflow-hidden">
+        <!-- Decorative top accent -->
+        <div class="absolute top-0 left-0 right-0 h-1 bg-emerald-500"></div>
+
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 live-blinking-dot"></span>
+              <span id="txtCard2Header" class="font-semibold uppercase tracking-wider text-slate-700">લાઇવ બાળભોગ બેલેન્સ</span>
+            </div>
+            <span id="txtCard2Badge" class="text-[11px] font-mono text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+              લાઈવ સિંક
+            </span>
+          </div>
+
+          <div class="flex items-baseline gap-3 my-1">
+            <span id="liveBalanceDisplay" class="text-4xl sm:text-5xl font-extrabold text-slate-950 font-mono tabular-nums tracking-tight">
+              --
+            </span>
+            <span id="txtCard2Unit" class="text-sm font-semibold text-slate-600">
+              પેકેટ્સ (Packets)
+            </span>
+          </div>
+
+          <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span><span id="txtCard2Updated">છેલ્લું અપડેટ:</span> <strong id="lastUpdatedTime" class="font-mono text-slate-700">પ્રતીક્ષારત...</strong></span>
+          </p>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span class="text-slate-500"><span id="txtCard2Buffer">નિયત સુરક્ષા જથ્થો (Buffer):</span> <strong id="txtCard2BufferVal">૧૫ પેકેટ્સ</strong></span>
+          <span id="stockStatusText" class="font-medium text-emerald-700">તપાસાઈ રહ્યું છે...</span>
+        </div>
+      </div>
+
+      <!-- CARD 3: Low-Stock Alert: If balance is < 15 packets, show red alert badge "⚠️ તાત્કાલિક રીસ્ટોક કરો (Low Stock)" -->
+      <div id="alertCardContainer" class="rounded-xl border shadow-xs p-5 flex flex-col justify-between transition-all bg-emerald-50/60 border-emerald-200 text-slate-800">
+        <div>
+          <div class="flex items-center justify-between text-xs text-slate-500 mb-2">
+            <span id="txtCard3Header" class="font-semibold uppercase tracking-wider text-slate-700">સ્ટોક એલર્ટ મોનિટર (CDPO)</span>
+            <span id="alertStatusTag" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              સામાન્ય
+            </span>
+          </div>
+
+          <!-- Dynamic Badge Area -->
+          <div id="alertBadgeWrapper" class="my-2">
+            <div id="normalStockBadge" class="flex items-center gap-2.5 p-3 rounded-lg bg-emerald-100/70 border border-emerald-300 text-emerald-900">
+              <i data-lucide="shield-check" class="w-5 h-5 text-emerald-700 shrink-0"></i>
+              <div>
+                <div id="txtNormalBadgeTitle" class="font-bold text-sm">પર્યાપ્ત સ્ટોક બેલેન્સ (Adequate Stock)</div>
+                <div id="txtNormalBadgeDesc" class="text-xs text-emerald-800 mt-0.5">સ્ટોક નિર્ધારિત લઘુત્તમ મર્યાદા (૧૫ પેકેટ્સ) કરતાં વધારે છે.</div>
+              </div>
+            </div>
+
+            <div id="lowStockAlertBadge" class="hidden flex items-center gap-3 p-3.5 rounded-lg bg-red-600 text-white shadow-md border-2 border-red-700 urgent-pulse">
+              <i data-lucide="alert-octagon" class="w-6 h-6 text-white shrink-0 animate-bounce"></i>
+              <div class="flex-1">
+                <div id="txtLowStockBadgeTitle" class="font-extrabold text-base tracking-wide flex items-center gap-1.5">
+                  <span>⚠️ તાત્કાલિક રીસ્ટોક કરો (Low Stock)</span>
+                </div>
+                <div id="txtLowStockBadgeDesc" class="text-xs text-red-100 mt-0.5 font-medium">
+                  ચેતવણી: બાળભોગ બેલેન્સ ૧૫ પેકેટ્સ કરતાં ઘટી ગયું છે. કલેક્ટર કચેરી/ગોડાઉનમાંથી તાત્કાલિક પુરવઠો મોકલો.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
+          <span class="text-slate-600"><span id="txtMinThreshold">લઘુત્તમ ચેતવણી થ્રેશોલ્ડ:</span> <strong class="font-mono">&lt; 15 Packets</strong></span>
+          <button id="dispatchRestockOrderBtn" class="text-xs font-semibold text-amber-700 hover:text-amber-800 hover:underline flex items-center gap-1 cursor-pointer">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span id="txtRestockBtn">રીસ્ટોક રિક્વેસ્ટ મોકલો</span>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- REAL-TIME AUDIT TABLE SECTION -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+      
+      <!-- Table Header & Filter Toolbar -->
+      <div class="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-5 h-5 text-amber-600"></i>
+            <h2 id="txtTableTitle" class="text-base font-bold text-slate-900">
+              રિયલ-ટાઇમ સ્ટોક ટ્રાન્ઝેક્શન અને ઓડિટ રજિસ્ટર (Live Audit Table)
+            </h2>
+          </div>
+          <p id="txtTableSubtitle" class="text-xs text-slate-500 mt-0.5">
+            મોબાઈલ એપ્લિકેશન દ્વારા નોંધાયેલ પ્રત્યેક આવક (Inward) અને વિતરણ (Distribution) ની ક્ષણવાર વિગતો
+          </p>
+        </div>
+
+        <!-- Filter and Search controls -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input id="tableSearchInput" type="text" placeholder="ગામ અથવા વિગત શોધો..." class="pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 w-48 sm:w-56" />
+          </div>
+
+          <select id="actionFilterSelect" class="text-xs py-1.5 px-2 bg-white border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-amber-500 text-slate-700">
+            <option id="optFilterAll" value="all">બધી ક્રિયાઓ (All)</option>
+            <option id="optFilterInward" value="Inward">આવક (Inward +)</option>
+            <option id="optFilterDist" value="Distribution">વિતરણ (Distribution -)</option>
+          </select>
+
+          <span id="auditCountBadge" class="text-xs font-mono font-medium text-slate-500 bg-slate-200/80 px-2 py-1 rounded">
+            ૦ રેકોર્ડ્સ
+          </span>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="overflow-x-auto min-h-[320px]">
+        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+          <thead>
+            <tr class="bg-slate-100/90 text-slate-700 uppercase tracking-wider text-[11px] font-bold border-b border-slate-200">
+              <th scope="col" class="py-3 px-4 font-semibold">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span id="txtColTimestamp">તારીખ અને સમય (Timestamp)</span>
+                </div>
+              </th>
+              <th scope="col" class="py-3 px-4 font-semibold">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span id="txtColVillage">ગામનું નામ (Village Name)</span>
+                </div>
+              </th>
+              <th scope="col" class="py-3 px-4 font-semibold">
+                <div class="flex items-center gap-1.5">
+                  <i data-lucide="activity" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span id="txtColAction">કામગીરી (Action Taken)</span>
+                </div>
+              </th>
+              <th scope="col" class="py-3 px-4 font-semibold text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <i data-lucide="arrow-up-down" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span id="txtColChange">પેકેટ્સ ફેરફાર (Packets Changed)</span>
+                </div>
+              </th>
+              <th scope="col" class="py-3 px-4 font-semibold text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                  <i data-lucide="boxes" class="w-3.5 h-3.5 text-slate-500"></i>
+                  <span id="txtColResult">પરિણામી સ્ટોક બેલેન્સ (Resulting Stock)</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody" class="divide-y divide-slate-100 text-slate-700 font-sans">
+            <!-- Loading initial rows placeholder -->
+            <tr id="emptyTableRow">
+              <td colspan="5" class="py-12 text-center text-slate-400">
+                <div class="flex flex-col items-center justify-center gap-2">
+                  <i data-lucide="loader-2" class="w-6 h-6 animate-spin text-amber-500"></i>
+                  <span id="txtLoadingMsg" class="text-xs font-medium">Firebase Realtime Database માંથી સ્ટોક ડેટા લોડ થઈ રહ્યો છે...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table Footer Status Note -->
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="txtTableFooterNote">નવી એન્ટ્રી આપમેળે ટોચ પર ઉમેરાશે અને પીળા ગ્લો એનિમેશન સાથે હાઇલાઇટ થશે.</span>
+        </div>
+        <div id="txtTableFooterRecord" class="text-[11px] text-slate-400">
+          સત્તાવાર રેકોર્ડ: આઈ.સી.ડી.એસ. આણંદ ઘટક-૧
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- CDPO NOTIFICATION MODAL / TOAST -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="flex items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-xl border border-slate-700 text-xs max-w-md">
+      <div id="toastIconContainer" class="p-1 rounded bg-amber-500/20 text-amber-400">
+        <i data-lucide="bell" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <div id="toastTitle" class="font-bold text-amber-300">સૂચના</div>
+        <div id="toastMsg" class="text-slate-300 mt-0.5">ડેટા સફળતાપૂર્વક અપડેટ થયો છે.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 text-xs py-5 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span id="txtFooterCopyright">© 2026 પોષણસેતુ (PoshanSetu) — મહિલા અને બાળ વિકાસ વિભાગ, ગુજરાત સરકાર.</span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-400 text-xs">
+        <span id="txtFooterCollector">કલેક્ટર કચેરી, આણંદ</span>
+        <span>·</span>
+        <span id="txtFooterCdpo">CDPO કચેરી આણંદ ગ્રામ્ય</span>
+        <span>·</span>
+        <span id="txtFooterSystem" class="text-emerald-400 font-mono font-medium">સિસ્ટમ સ્થિતિ: સામાન્ય</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. CONFIGURATION & STATE
+    // -------------------------------------------------------------
+    const FIREBASE_DB_URL = "https://poshan-setu-default-rtdb.firebaseio.com/";
+    const STOCK_PATH = "/active_stock";
+    const LOW_STOCK_THRESHOLD = 15;
+    const DEFAULT_VILLAGE_GU = "૦૪ - વડતાલ (આણંદ)";
+    const DEFAULT_VILLAGE_EN = "04 - Vadtal (Anand)";
+
+    let currentLang = localStorage.getItem('poshansetu_lang') || 'gu';
+
+    let currentBalance = null;
+    let transactions = [];
+    let soundEnabled = true;
+    let initialLoadDone = false;
+
+    try {
+      const savedHistory = localStorage.getItem('poshansetu_audit_history');
+      if (savedHistory) {
+        transactions = JSON.parse(savedHistory);
+      }
+    } catch (e) {
+      console.warn("Could not read stored transactions:", e);
+    }
+
+    // -------------------------------------------------------------
+    // 2. COMPLETE BILINGUAL TRANSLATION DICTIONARY
+    // -------------------------------------------------------------
+    const I18N = {
+      gu: {
+        pageTitle: "પોષણસેતુ મોનિટરિંગ ડેશબોર્ડ | CDPO અને કલેક્ટર કચેરી, આણંદ",
+        govTitle: "ગુજરાત સરકાર",
+        govSub: "Government of Gujarat",
+        dept: "WCDD (આઈ.સી.ડી.એસ)",
+        portalTitle: "પોષણસેતુ ડેસ્કટોપ મોનિટરિંગ પોર્ટલ",
+        portalSubtitle: "બાળ વિકાસ યોજના અધિકારી (CDPO) અને કલેક્ટર કચેરી, આણંદ — બાળભોગ લાઇવ સ્ટોક ટ્રેકર",
+        langBtn: "English",
+        rtdbConnected: "RTDB કનેક્ટેડ (Live)",
+        rtdbConnecting: "કનેક્ટ થઈ રહ્યું છે...",
+        clockLabel: "ભારતીય માનક સમય (IST)",
+        simBtn: "મોબાઈલ સિન્ક સિમ્યુલેટર",
+        csvBtn: "CSV રિપોર્ટ",
+        pdfBtn: "PDF રિપોર્ટ",
+        district: "જિલ્લો: <strong class=\"text-white\">આણંદ</strong>",
+        taluka: "તાલુકો: <strong class=\"text-white\">આણંદ ગ્રામ્ય</strong>",
+        sector: "સેક્ટર: <strong class=\"text-white\">વડતાલ-૧</strong>",
+        project: "પ્રોજેક્ટ: <strong class=\"text-white\">ICDS પોષણસેતુ</strong>",
+        endpoint: "એન્ડપોઇન્ટ:",
+        // Cards
+        card1Header: "પસંદ કરેલ આંગણવાડી કેન્દ્ર",
+        card1Code: "કેન્દ્ર કોડ: ૦૪",
+        card1Title: "૦૪ - વડતાલ (આણંદ)",
+        card1Sub: "Centre Code: <span class=\"font-mono font-medium text-slate-700\">AW-VAD-04</span> · જિલ્લો: આણંદ",
+        card1Worker: "કાર્યકર: શ્રીમતી ભાવનાબેન પટેલ",
+        card1Status: "સક્રિય (Active)",
+        // Card 2
+        card2Header: "લાઇવ બાળભોગ બેલેન્સ",
+        card2Badge: "લાઈવ સિંક",
+        card2Unit: "પેકેટ્સ (Packets)",
+        card2Updated: "છેલ્લું અપડેટ:",
+        card2Waiting: "પ્રતીક્ષારત...",
+        card2Buffer: "નિયત સુરક્ષા જથ્થો (Buffer):",
+        card2BufferVal: "૧૫ પેકેટ્સ",
+        stockStatusOk: "✓ પર્યાપ્ત સ્ટોક (Adequate)",
+        stockStatusLow: "⚠️ સ્ટોક ઓછો છે (<૧૫)",
+        // Card 3
+        card3Header: "સ્ટોક એલર્ટ મોનિટર (CDPO)",
+        statusNormal: "સામાન્ય (Normal)",
+        statusCritical: "તાકીદની જરૂરિયાત (CRITICAL)",
+        normalBadgeTitle: "પર્યાપ્ત સ્ટોક બેલેન્સ (Adequate Stock)",
+        normalBadgeDesc: "સ્ટોક નિર્ધારિત લઘુત્તમ મર્યાદા (૧૫ પેકેટ્સ) કરતાં વધારે છે.",
+        lowStockBadgeTitle: "⚠️ તાત્કાલિક રીસ્ટોક કરો (Low Stock)",
+        lowStockBadgeDesc: "ચેતવણી: બાળભોગ બેલેન્સ ૧૫ પેકેટ્સ કરતાં ઘટી ગયું છે. કલેક્ટર કચેરી/ગોડાઉનમાંથી તાત્કાલિક પુરવઠો મોકલો.",
+        minThreshold: "લઘુત્તમ ચેતવણી થ્રેશોલ્ડ:",
+        restockBtn: "રીસ્ટોક રિક્વેસ્ટ મોકલો",
+        // Table
+        tableTitle: "રિયલ-ટાઇમ સ્ટોક ટ્રાન્ઝેક્શન અને ઓડિટ રજિસ્ટર (Live Audit Table)",
+        tableSubtitle: "મોબાઈલ એપ્લિકેશન દ્વારા નોંધાયેલ પ્રત્યેક આવક (Inward) અને વિતરણ (Distribution) ની ક્ષણવાર વિગતો",
+        searchPlaceholder: "ગામ અથવા વિગત શોધો...",
+        filterAll: "બધી ક્રિયાઓ (All)",
+        filterInward: "આવક (Inward +)",
+        filterDist: "વિતરણ (Distribution -)",
+        recordsCountSuffix: "રેકોર્ડ્સ",
+        colTimestamp: "તારીખ અને સમય (Timestamp)",
+        colVillage: "ગામનું નામ (Village Name)",
+        colAction: "કામગીરી (Action Taken)",
+        colChange: "પેકેટ્સ ફેરફાર (Packets Changed)",
+        colResult: "પરિણામી સ્ટોક બેલેન્સ (Resulting Stock)",
+        actionInward: "આવક (Inward)",
+        actionDist: "વિતરણ (Distribution)",
+        actionSync: "સિંક (Sync)",
+        packetsUnit: "પેકેટ",
+        emptyTableMsg: "કોઈ ટ્રાન્ઝેક્શન રેકોર્ડ મળ્યો નથી.",
+        loadingMsg: "Firebase Realtime Database માંથી સ્ટોક ડેટા લોડ થઈ રહ્યો છે...",
+        tableFooterNote: "નવી એન્ટ્રી આપમેળે ટોચ પર ઉમેરાશે અને પીળા ગ્લો એનિમેશન સાથે હાઇલાઇટ થશે.",
+        tableFooterRecord: "સત્તાવાર રેકોર્ડ: આઈ.સી.ડી.એસ. આણંદ ઘટક-૧",
+        // Simulator drawer
+        simDrawerTitle: "મોબાઈલ એપ્લિકેશન સિન્ક કંટ્રોલર (આંગણવાડી કાર્યકર ટેસ્ટ ટૂલ)",
+        simDrawerDesc: "જ્યારે આંગણવાડી કાર્યકર પોતાના ફોનમાંથી સ્ટોક અપડેટ કરશે, ત્યારે આ લેપટોપ સ્ક્રીન કોઈ પેજ રિફ્રેશ વગર આપમેળે અપડેટ થશે. તમે અહીંથી સીધા ટેસ્ટ કરી શકો છો:",
+        simInwardTitle: "આવક નોંધો (+૨૫)",
+        simInwardDesc: "નવા સ્ટોક પેકેટ્સ ગોડાઉનમાંથી પ્રાપ્ત થયા (+25 Inward)",
+        simDistTitle: "બાળભોગ વિતરણ (-૧૦)",
+        simDistDesc: "લાભાર્થી બાળકોને વિતરણ કરવામાં આવ્યું (-10 Distributed)",
+        simLowTitle: "લો-સ્ટોક ટેસ્ટ કરો (૮ પેકેટ)",
+        simLowDesc: "સ્ટોક ૧૫ થી ઓછો કરો (< 15) જેથી લાલ એલર્ટ તપાસાય",
+        simCustomLabel: "કસ્ટમ સ્ટોક સેટ કરો:",
+        simCustomSetBtn: "સેટ કરો",
+        // Footer
+        footerCopyright: "© 2026 પોષણસેતુ (PoshanSetu) — મહિલા અને બાળ વિકાસ વિભાગ, ગુજરાત સરકાર.",
+        footerCollector: "કલેક્ટર કચેરી, આણંદ",
+        footerCdpo: "CDPO કચેરી આણંદ ગ્રામ્ય",
+        footerSystem: "સિસ્ટમ સ્થિતિ: સામાન્ય",
+        // Toasts
+        toastRestockTitle: "રીસ્ટોક રિક્વેસ્ટ મંજૂર",
+        toastRestockDesc: "ગોડાઉનમાંથી ૫૦ પેકેટ્સ વડતાલ કેન્દ્ર ખાતે રવાના કરવામાં આવ્યા છે.",
+        toastSoundOnTitle: "ઓડિયો એલર્ટ ચાલુ",
+        toastSoundOnDesc: "સ્ટોક ફેરફાર અને લો-સ્ટોક એલર્ટ અવાજ ચાલુ છે.",
+        toastSoundOffTitle: "ઓડિયો એલર્ટ મ્યૂટ",
+        toastSoundOffDesc: "અવાજ બંધ કરવામાં આવ્યો છે.",
+        toastLowStockTitle: "⚠️ લઘુત્તમ સ્ટોક ચેતવણી!",
+        toastLowStockDesc: "વડતાલ કેન્દ્રમાં સ્ટોક ઘટીને માત્ર {b} પેકેટ્સ રહી ગયો છે.",
+        toastStockUpdateTitle: "સ્ટોક અપડેટ પ્રાપ્ત થયો",
+        toastStockUpdateDesc: "નવું બેલેન્સ: {b} પેકેટ્સ ({d})",
+        toastPdfTitle: "PDF રિપોર્ટ ડાઉનલોડ થયો",
+        toastPdfDesc: "સત્તાવાર ઓડિટ PDF રિપોર્ટ સફળતાપૂર્વક જનરેટ કરવામાં આવ્યો છે.",
+      },
+      en: {
+        pageTitle: "PoshanSetu Monitoring Dashboard | CDPO & Collector Office Anand",
+        govTitle: "Government of Gujarat",
+        govSub: "ગુજરાત સરકાર",
+        dept: "WCDD (ICDS Anand)",
+        portalTitle: "PoshanSetu Desktop Monitoring Portal",
+        portalSubtitle: "Child Development Project Officer (CDPO) & Collector Office, Anand — Balbhog Live Stock Tracker",
+        langBtn: "ગુજરાતી",
+        rtdbConnected: "RTDB Connected (Live)",
+        rtdbConnecting: "Connecting...",
+        clockLabel: "Indian Standard Time (IST)",
+        simBtn: "Mobile Sync Simulator",
+        csvBtn: "CSV Report",
+        pdfBtn: "Download PDF Report",
+        district: "District: <strong class=\"text-white\">Anand</strong>",
+        taluka: "Taluka: <strong class=\"text-white\">Anand Rural</strong>",
+        sector: "Sector: <strong class=\"text-white\">Vadtal-1</strong>",
+        project: "Project: <strong class=\"text-white\">ICDS PoshanSetu</strong>",
+        endpoint: "Endpoint:",
+        // Cards
+        card1Header: "SELECTED ANGANWADI CENTRE",
+        card1Code: "Centre Code: 04",
+        card1Title: "04 - Vadtal (Anand)",
+        card1Sub: "Centre Code: <span class=\"font-mono font-medium text-slate-700\">AW-VAD-04</span> · District: Anand",
+        card1Worker: "Worker: Smt. Bhavanaben Patel",
+        card1Status: "Active",
+        // Card 2
+        card2Header: "LIVE BALBHOG BALANCE",
+        card2Badge: "Live Synced",
+        card2Unit: "Packets",
+        card2Updated: "Last Updated:",
+        card2Waiting: "Awaiting...",
+        card2Buffer: "Mandated Buffer Stock:",
+        card2BufferVal: "15 Packets",
+        stockStatusOk: "✓ Adequate Stock Level",
+        stockStatusLow: "⚠️ Low Stock Alert (<15)",
+        // Card 3
+        card3Header: "STOCK ALERT MONITOR (CDPO)",
+        statusNormal: "Normal",
+        statusCritical: "CRITICAL ALERT",
+        normalBadgeTitle: "Adequate Stock Balance",
+        normalBadgeDesc: "Balbhog balance is above the minimum required safety reserve (15 packets).",
+        lowStockBadgeTitle: "⚠️ Immediate Restock Required (Low Stock)",
+        lowStockBadgeDesc: "Warning: Balbhog balance has fallen below 15 packets. Dispatch emergency quota immediately from Collector Office Godown.",
+        minThreshold: "Minimum Alert Threshold:",
+        restockBtn: "Dispatch Restock Request",
+        // Table
+        tableTitle: "Real-Time Stock Transaction & Audit Register (Live Audit Table)",
+        tableSubtitle: "Immediate chronological record of every Inward stock receipt and beneficiary Distribution logged via mobile app",
+        searchPlaceholder: "Search village or details...",
+        filterAll: "All Actions",
+        filterInward: "Inward (+)",
+        filterDist: "Distribution (-)",
+        recordsCountSuffix: "Records",
+        colTimestamp: "Timestamp (IST)",
+        colVillage: "Village Name",
+        colAction: "Action Taken",
+        colChange: "Packets Changed",
+        colResult: "Resulting Stock Balance",
+        actionInward: "Inward",
+        actionDist: "Distribution",
+        actionSync: "Sync",
+        packetsUnit: "pkts",
+        emptyTableMsg: "No transaction records found.",
+        loadingMsg: "Loading stock data from Firebase Realtime Database...",
+        tableFooterNote: "New entries are prepended automatically with a subtle yellow glow animation.",
+        tableFooterRecord: "Official Register: ICDS Anand Unit-1",
+        // Simulator drawer
+        simDrawerTitle: "Mobile Application Sync Controller (Anganwadi Field Tester)",
+        simDrawerDesc: "When an Anganwadi worker updates stock on their smartphone, this officer desktop screen updates instantly without refreshing. Test actions here:",
+        simInwardTitle: "Record Inward (+25)",
+        simInwardDesc: "New stock bags received from godown (+25 Inward)",
+        simDistTitle: "Balbhog Distribution (-10)",
+        simDistDesc: "Packets distributed to beneficiary children (-10 Distributed)",
+        simLowTitle: "Trigger Low-Stock Test (8 pkts)",
+        simLowDesc: "Reduce stock below 15 to test red emergency alert",
+        simCustomLabel: "Set Custom Balance:",
+        simCustomSetBtn: "Set Stock",
+        // Footer
+        footerCopyright: "© 2026 PoshanSetu — Women & Child Development Department, Govt of Gujarat.",
+        footerCollector: "Collector Office, Anand",
+        footerCdpo: "CDPO Office Anand Rural",
+        footerSystem: "System Status: Nominal",
+        // Toasts
+        toastRestockTitle: "Restock Request Dispatched",
+        toastRestockDesc: "50 Balbhog packets dispatched from central godown to Vadtal centre.",
+        toastSoundOnTitle: "Audio Alerts Enabled",
+        toastSoundOnDesc: "Chimes for stock updates and low-stock alerts are active.",
+        toastSoundOffTitle: "Audio Alerts Muted",
+        toastSoundOffDesc: "Chimes have been muted.",
+        toastLowStockTitle: "⚠️ Critical Low Stock Alert!",
+        toastLowStockDesc: "Vadtal Centre stock has dropped to only {b} packets.",
+        toastStockUpdateTitle: "Live Stock Update Received",
+        toastStockUpdateDesc: "New balance: {b} packets ({d})",
+        toastPdfTitle: "PDF Report Generated",
+        toastPdfDesc: "Formal audit PDF report has been downloaded successfully.",
+      }
+    };
+
+    // -------------------------------------------------------------
+    // 3. LANGUAGE SWITCHER FUNCTION
+    // -------------------------------------------------------------
+    function applyLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('poshansetu_lang', lang);
+      document.getElementById('htmlRoot').setAttribute('lang', lang);
+
+      const t = I18N[lang];
+
+      document.title = t.pageTitle;
+
+      document.getElementById('txtGovTitle').textContent = t.govTitle;
+      document.getElementById('txtGovSub').textContent = t.govSub;
+      document.getElementById('txtDept').textContent = t.dept;
+      document.getElementById('txtPortalTitle').textContent = t.portalTitle;
+      document.getElementById('txtPortalSubtitle').textContent = t.portalSubtitle;
+      document.getElementById('langBtnText').textContent = t.langBtn;
+      document.getElementById('txtClockLabel').textContent = t.clockLabel;
+      document.getElementById('txtSimBtn').textContent = t.simBtn;
+      document.getElementById('txtCsvBtn').textContent = t.csvBtn;
+      document.getElementById('txtPdfBtn').textContent = t.pdfBtn;
+
+      document.getElementById('txtDistrict').innerHTML = t.district;
+      document.getElementById('txtTaluka').innerHTML = t.taluka;
+      document.getElementById('txtSector').innerHTML = t.sector;
+      document.getElementById('txtProject').innerHTML = t.project;
+      document.getElementById('txtEndpoint').textContent = t.endpoint;
+
+      document.getElementById('txtCard1Header').textContent = t.card1Header;
+      document.getElementById('txtCard1Code').textContent = t.card1Code;
+      document.getElementById('txtCard1Title').textContent = t.card1Title;
+      document.getElementById('txtCard1Sub').innerHTML = t.card1Sub;
+      document.getElementById('txtCard1Worker').textContent = t.card1Worker;
+      document.getElementById('txtCard1Status').textContent = t.card1Status;
+
+      document.getElementById('txtCard2Header').textContent = t.card2Header;
+      document.getElementById('txtCard2Badge').textContent = t.card2Badge;
+      document.getElementById('txtCard2Unit').textContent = t.card2Unit;
+      document.getElementById('txtCard2Updated').textContent = t.card2Updated;
+      document.getElementById('txtCard2Buffer').textContent = t.card2Buffer;
+      document.getElementById('txtCard2BufferVal').textContent = t.card2BufferVal;
+
+      document.getElementById('txtCard3Header').textContent = t.card3Header;
+      document.getElementById('txtNormalBadgeTitle').textContent = t.normalBadgeTitle;
+      document.getElementById('txtNormalBadgeDesc').textContent = t.normalBadgeDesc;
+      document.getElementById('txtLowStockBadgeTitle').textContent = t.lowStockBadgeTitle;
+      document.getElementById('txtLowStockBadgeDesc').textContent = t.lowStockBadgeDesc;
+      document.getElementById('txtMinThreshold').textContent = t.minThreshold;
+      document.getElementById('txtRestockBtn').textContent = t.restockBtn;
+
+      document.getElementById('txtSimDrawerTitle').textContent = t.simDrawerTitle;
+      document.getElementById('txtSimDrawerDesc').textContent = t.simDrawerDesc;
+      document.getElementById('txtSimInwardTitle').textContent = t.simInwardTitle;
+      document.getElementById('txtSimInwardDesc').textContent = t.simInwardDesc;
+      document.getElementById('txtSimDistTitle').textContent = t.simDistTitle;
+      document.getElementById('txtSimDistDesc').textContent = t.simDistDesc;
+      document.getElementById('txtSimLowTitle').textContent = t.simLowTitle;
+      document.getElementById('txtSimLowDesc').textContent = t.simLowDesc;
+      document.getElementById('txtSimCustomLabel').textContent = t.simCustomLabel;
+      document.getElementById('txtSimCustomSetBtn').textContent = t.simCustomSetBtn;
+
+      document.getElementById('txtTableTitle').textContent = t.tableTitle;
+      document.getElementById('txtTableSubtitle').textContent = t.tableSubtitle;
+      document.getElementById('tableSearchInput').placeholder = t.searchPlaceholder;
+      document.getElementById('optFilterAll').textContent = t.filterAll;
+      document.getElementById('optFilterInward').textContent = t.filterInward;
+      document.getElementById('optFilterDist').textContent = t.filterDist;
+      document.getElementById('txtColTimestamp').textContent = t.colTimestamp;
+      document.getElementById('txtColVillage').textContent = t.colVillage;
+      document.getElementById('txtColAction').textContent = t.colAction;
+      document.getElementById('txtColChange').textContent = t.colChange;
+      document.getElementById('txtColResult').textContent = t.colResult;
+      document.getElementById('txtTableFooterNote').textContent = t.tableFooterNote;
+      document.getElementById('txtTableFooterRecord').textContent = t.tableFooterRecord;
+
+      const loadingMsgEl = document.getElementById('txtLoadingMsg');
+      if (loadingMsgEl) loadingMsgEl.textContent = t.loadingMsg;
+
+      document.getElementById('txtFooterCopyright').textContent = t.footerCopyright;
+      document.getElementById('txtFooterCollector').textContent = t.footerCollector;
+      document.getElementById('txtFooterCdpo').textContent = t.footerCdpo;
+      document.getElementById('txtFooterSystem').textContent = t.footerSystem;
+
+      if (currentBalance !== null) {
+        updateMetricsUI(currentBalance);
+      }
+      renderAuditTable();
+    }
+
+    document.getElementById('langToggleBtn')?.addEventListener('click', () => {
+      const nextLang = (currentLang === 'gu') ? 'en' : 'gu';
+      applyLanguage(nextLang);
+      const switchToastMsg = (nextLang === 'en')
+        ? "Language changed to English"
+        : "ભાષા ગુજરાતીમાં બદલવામાં આવી છે";
+      showToast(nextLang === 'en' ? "Language Switched" : "ભાષા બદલાઈ", switchToastMsg, false);
+    });
+
+    // -------------------------------------------------------------
+    // 4. WEB AUDIO SYNTH
+    // -------------------------------------------------------------
+    function playNotificationSound(type = 'update') {
+      if (!soundEnabled) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+
+        if (type === 'alert') {
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc1.type = 'sawtooth';
+          osc2.type = 'triangle';
+          osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc2.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start();
+          osc2.start(ctx.currentTime + 0.1);
+          osc1.stop(ctx.currentTime + 0.5);
+          osc2.stop(ctx.currentTime + 0.6);
+        } else {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.12);
+
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        }
+      } catch (err) {}
+    }
+
+    // -------------------------------------------------------------
+    // 5. DATE FORMATTERS
+    // -------------------------------------------------------------
+    function formatISTTime(dateObj = new Date()) {
+      const locale = currentLang === 'gu' ? 'gu-IN' : 'en-IN';
+      return dateObj.toLocaleTimeString(locale, {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    }
+
+    function formatISTFull(dateObj = new Date()) {
+      const locale = currentLang === 'gu' ? 'gu-IN' : 'en-IN';
+      const d = dateObj.toLocaleDateString(locale, {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const t = formatISTTime(dateObj);
+      return `${d} ${t}`;
+    }
+
+    setInterval(() => {
+      const clockEl = document.getElementById('liveClock');
+      if (clockEl) {
+        const now = new Date();
+        clockEl.textContent = now.toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }) + " IST";
+      }
+    }, 1000);
+
+    // -------------------------------------------------------------
+    // 6. FIREBASE REALTIME DATABASE
+    // -------------------------------------------------------------
+    let firebaseDb = null;
+    let activeStockRef = null;
+
+    try {
+      const firebaseConfig = { databaseURL: FIREBASE_DB_URL };
+      firebase.initializeApp(firebaseConfig);
+      firebaseDb = firebase.database();
+      activeStockRef = firebaseDb.ref(STOCK_PATH);
+    } catch (e) {
+      console.error("Firebase RTDB init error:", e);
+    }
+
+    if (firebaseDb) {
+      const connectedRef = firebaseDb.ref(".info/connected");
+      connectedRef.on("value", (snap) => {
+        const isConnected = snap.val() === true;
+        updateConnectionStatusUI(isConnected);
+      });
+    }
+
+    function updateConnectionStatusUI(connected) {
+      const dot = document.getElementById('connectionDot');
+      const text = document.getElementById('connectionText');
+      const t = I18N[currentLang];
+      if (connected) {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 live-blinking-dot";
+        text.className = "font-medium text-emerald-400";
+        text.textContent = t.rtdbConnected;
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+        text.className = "font-medium text-amber-400";
+        text.textContent = t.rtdbConnecting;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 7. STOCK VALUE LISTENER
+    // -------------------------------------------------------------
+    function handleStockValueEvent(snapshot) {
+      const val = snapshot.val();
+      if (val === null || val === undefined) return;
+
+      let newBalance = 0;
+      let villageName = currentLang === 'gu' ? DEFAULT_VILLAGE_GU : DEFAULT_VILLAGE_EN;
+      let explicitAction = null;
+      let explicitChange = null;
+      let timestamp = new Date();
+
+      if (typeof val === 'number') {
+        newBalance = Math.round(val);
+      } else if (typeof val === 'string') {
+        newBalance = parseInt(val, 10) || 0;
+      } else if (typeof val === 'object') {
+        newBalance = val.balance !== undefined ? Number(val.balance) : (val.packets !== undefined ? Number(val.packets) : 0);
+        if (val.village) villageName = val.village;
+        if (val.lastAction) explicitAction = val.lastAction;
+        if (val.change !== undefined) explicitChange = Number(val.change);
+        if (val.timestamp) {
+          const parsed = new Date(val.timestamp);
+          if (!isNaN(parsed.getTime())) timestamp = parsed;
+        }
+      }
+
+      const prevBalance = currentBalance;
+      const isFirstLoad = !initialLoadDone;
+      initialLoadDone = true;
+
+      currentBalance = newBalance;
+      updateMetricsUI(newBalance);
+
+      let delta = 0;
+      if (explicitChange !== null && explicitChange !== undefined && explicitChange !== 0) {
+        delta = explicitChange;
+      } else if (prevBalance !== null && !isFirstLoad) {
+        delta = newBalance - prevBalance;
+      }
+
+      let actionTaken = explicitAction;
+      const t = I18N[currentLang];
+      if (!actionTaken) {
+        if (isFirstLoad && transactions.length === 0) {
+          actionTaken = currentLang === 'gu' ? "પ્રારંભિક બેલેન્સ સિંક (Initial Sync)" : "Initial Stock Sync";
+        } else if (delta > 0) {
+          actionTaken = currentLang === 'gu' ? "આવક - નવો સ્ટોક જમા (Inward)" : "Inward (+ Stock Received)";
+        } else if (delta < 0) {
+          actionTaken = currentLang === 'gu' ? "વિતરણ - બાળભોગ આપેલ (Distribution)" : "Distribution (- Distributed)";
+        } else {
+          actionTaken = currentLang === 'gu' ? "બેલેન્સ પુષ્ટિ (Stock Verified)" : "Stock Verified";
+        }
+      }
+
+      if (delta !== 0 || (isFirstLoad && transactions.length === 0)) {
+        const txRecord = {
+          id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          timestampStr: formatISTFull(timestamp),
+          village: villageName,
+          action: actionTaken,
+          change: delta,
+          balance: newBalance,
+          isNew: !isFirstLoad
+        };
+
+        transactions.unshift(txRecord);
+
+        if (transactions.length > 100) {
+          transactions = transactions.slice(0, 100);
+        }
+
+        try {
+          localStorage.setItem('poshansetu_audit_history', JSON.stringify(transactions));
+        } catch (e) {}
+
+        if (!isFirstLoad) {
+          if (newBalance < LOW_STOCK_THRESHOLD) {
+            playNotificationSound('alert');
+            const alertMsg = t.toastLowStockDesc.replace('{b}', newBalance);
+            showToast(t.toastLowStockTitle, alertMsg, true);
+          } else {
+            playNotificationSound('update');
+            const updateMsg = t.toastStockUpdateDesc
+              .replace('{b}', newBalance)
+              .replace('{d}', delta > 0 ? '+' + delta : delta);
+            showToast(t.toastStockUpdateTitle, updateMsg, false);
+          }
+        }
+      }
+
+      renderAuditTable();
+    }
+
+    if (activeStockRef) {
+      activeStockRef.on('value', handleStockValueEvent, () => initRestFallback());
+    } else {
+      initRestFallback();
+    }
+
+    function initRestFallback() {
+      setInterval(async () => {
+        try {
+          const res = await fetch(`${FIREBASE_DB_URL}active_stock.json?t=${Date.now()}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data !== null) handleStockValueEvent({ val: () => data });
+          }
+        } catch (err) {}
+      }, 5000);
+    }
+
+    // -------------------------------------------------------------
+    // 8. METRICS CARDS UPDATE
+    // -------------------------------------------------------------
+    function updateMetricsUI(balance) {
+      const balanceEl = document.getElementById('liveBalanceDisplay');
+      const lastUpdatedEl = document.getElementById('lastUpdatedTime');
+      const stockStatusText = document.getElementById('stockStatusText');
+      const alertContainer = document.getElementById('alertCardContainer');
+      const alertTag = document.getElementById('alertStatusTag');
+      const normalBadge = document.getElementById('normalStockBadge');
+      const lowStockBadge = document.getElementById('lowStockAlertBadge');
+      const t = I18N[currentLang];
+
+      if (balanceEl) {
+        balanceEl.textContent = balance.toLocaleString(currentLang === 'gu' ? 'gu-IN' : 'en-IN');
+      }
+
+      if (lastUpdatedEl) {
+        lastUpdatedEl.textContent = formatISTTime();
+      }
+
+      const isLowStock = balance < LOW_STOCK_THRESHOLD;
+
+      if (isLowStock) {
+        alertContainer.className = "rounded-xl border-2 shadow-md p-5 flex flex-col justify-between transition-all bg-red-50 border-red-400 text-red-950";
+        alertTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white border border-red-700 animate-pulse";
+        alertTag.textContent = t.statusCritical;
+
+        normalBadge.classList.add('hidden');
+        lowStockBadge.classList.remove('hidden');
+
+        stockStatusText.className = "font-bold text-red-600 flex items-center gap-1";
+        stockStatusText.innerHTML = `<span>${t.stockStatusLow}</span>`;
+      } else {
+        alertContainer.className = "rounded-xl border shadow-xs p-5 flex flex-col justify-between transition-all bg-white border-slate-200 text-slate-800";
+        alertTag.className = "px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200";
+        alertTag.textContent = t.statusNormal;
+
+        normalBadge.classList.remove('hidden');
+        lowStockBadge.classList.add('hidden');
+
+        stockStatusText.className = "font-medium text-emerald-700 flex items-center gap-1";
+        stockStatusText.innerHTML = `<span>${t.stockStatusOk}</span>`;
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------
+    // 9. AUDIT TABLE RENDER
+    // -------------------------------------------------------------
+    function renderAuditTable() {
+      const tbody = document.getElementById('auditTableBody');
+      const countBadge = document.getElementById('auditCountBadge');
+      const filterAction = document.getElementById('actionFilterSelect')?.value || 'all';
+      const searchTerm = (document.getElementById('tableSearchInput')?.value || '').trim().toLowerCase();
+      const t = I18N[currentLang];
+
+      if (!tbody) return;
+
+      const filtered = transactions.filter(item => {
+        if (filterAction === 'Inward' && !item.action.toLowerCase().includes('inward') && !(item.change > 0)) return false;
+        if (filterAction === 'Distribution' && !item.action.toLowerCase().includes('distribution') && !(item.change < 0)) return false;
+        if (searchTerm) {
+          const combined = `${item.village} ${item.action} ${item.timestampStr} ${item.balance}`.toLowerCase();
+          return combined.includes(searchTerm);
+        }
+        return true;
+      });
+
+      if (countBadge) {
+        countBadge.textContent = `${filtered.length} ${t.recordsCountSuffix}`;
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-12 text-center text-slate-400">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <i data-lucide="inbox" class="w-8 h-8 text-slate-300"></i>
+                <span class="text-xs font-medium">${t.emptyTableMsg}</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      let html = '';
+      filtered.forEach((tx, index) => {
+        const isDistribution = tx.change < 0 || tx.action.toLowerCase().includes('distribution') || tx.action.includes('વિતરણ');
+        const isInward = tx.change > 0 || tx.action.toLowerCase().includes('inward') || tx.action.includes('આવક');
+
+        let actionBadge = '';
+        if (isInward) {
+          actionBadge = `
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i>
+              <span>${t.actionInward}</span>
+            </span>
+          `;
+        } else if (isDistribution) {
+          actionBadge = `
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+              <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+              <span>${t.actionDist}</span>
+            </span>
+          `;
+        } else {
+          actionBadge = `
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>${t.actionSync}</span>
+            </span>
+          `;
+        }
+
+        let changeBadge = '';
+        if (tx.change > 0) {
+          changeBadge = `<span class="font-mono font-bold text-emerald-600 tabular-nums text-sm">+${tx.change}</span>`;
+        } else if (tx.change < 0) {
+          changeBadge = `<span class="font-mono font-bold text-blue-600 tabular-nums text-sm">${tx.change}</span>`;
+        } else {
+          changeBadge = `<span class="font-mono text-slate-400 tabular-nums">0</span>`;
+        }
+
+        const glowClass = (tx.isNew && index === 0) ? 'glow-new-row' : '';
+
+        let displayVillage = tx.village;
+        if (currentLang === 'en' && displayVillage.includes('વડતાલ')) {
+          displayVillage = "04 - Vadtal (Anand)";
+        } else if (currentLang === 'gu' && displayVillage.includes('Vadtal')) {
+          displayVillage = "૦૪ - વડતાલ (આણંદ)";
+        }
+
+        html += `
+          <tr class="hover:bg-slate-50/80 transition-colors ${glowClass} border-b border-slate-100">
+            <td class="py-3 px-4 font-mono text-xs text-slate-600 tabular-nums">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                <span>${tx.timestampStr}</span>
+              </div>
+            </td>
+
+            <td class="py-3 px-4 font-medium text-slate-900">
+              <div class="flex items-center gap-1.5">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+                <span>${escapeHtml(displayVillage)}</span>
+              </div>
+            </td>
+
+            <td class="py-3 px-4">
+              ${actionBadge}
+            </td>
+
+            <td class="py-3 px-4 text-right">
+              ${changeBadge}
+            </td>
+
+            <td class="py-3 px-4 text-right">
+              <span class="font-mono font-extrabold text-slate-900 text-sm tabular-nums bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+                ${tx.balance} ${t.packetsUnit}
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+
+      if (transactions.length > 0) {
+        transactions[0].isNew = false;
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // -------------------------------------------------------------
+    // 10. SIMULATION ENGINE
+    // -------------------------------------------------------------
+    async function updateStockInFirebase(newBal, changeAmt, actionLabel) {
+      const payload = {
+        balance: Math.max(0, newBal),
+        change: changeAmt,
+        lastAction: actionLabel,
+        village: currentLang === 'gu' ? "૦૪ - વડતાલ" : "04 - Vadtal",
+        timestamp: new Date().toISOString()
+      };
+
+      if (activeStockRef) {
+        try {
+          await activeStockRef.set(payload);
+          return;
+        } catch (e) {}
+      }
+
+      try {
+        await fetch(`${FIREBASE_DB_URL}active_stock.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {}
+
+      handleStockValueEvent({ val: () => payload });
+    }
+
+    document.getElementById('toggleSimulatorBtn')?.addEventListener('click', () => {
+      document.getElementById('simulatorDrawer').classList.toggle('hidden');
+    });
+
+    document.getElementById('closeSimulatorBtn')?.addEventListener('click', () => {
+      document.getElementById('simulatorDrawer').classList.add('hidden');
+    });
+
+    document.getElementById('simInwardBtn')?.addEventListener('click', () => {
+      const base = (currentBalance !== null) ? currentBalance : 30;
+      const label = currentLang === 'gu' ? "આવક - નવો સ્ટોક જમા (Inward)" : "Inward (+25 Stock Received)";
+      updateStockInFirebase(base + 25, 25, label);
+    });
+
+    document.getElementById('simDistributeBtn')?.addEventListener('click', () => {
+      const base = (currentBalance !== null) ? currentBalance : 30;
+      const next = Math.max(0, base - 10);
+      const label = currentLang === 'gu' ? "વિતરણ - બાળભોગ આપેલ (Distribution)" : "Distribution (-10 Distributed)";
+      updateStockInFirebase(next, -10, label);
+    });
+
+    document.getElementById('simLowStockBtn')?.addEventListener('click', () => {
+      const targetStock = 8;
+      const base = (currentBalance !== null) ? currentBalance : 30;
+      const diff = targetStock - base;
+      const label = currentLang === 'gu' ? "વિતરણ - બાળભોગ આપેલ (Distribution)" : "Distribution (- Distributed)";
+      updateStockInFirebase(targetStock, diff, label);
+    });
+
+    document.getElementById('setCustomStockBtn')?.addEventListener('click', () => {
+      const input = document.getElementById('customBalanceInput');
+      const val = parseInt(input.value, 10);
+      if (!isNaN(val) && val >= 0) {
+        const base = (currentBalance !== null) ? currentBalance : val;
+        const diff = val - base;
+        const label = diff >= 0
+          ? (currentLang === 'gu' ? "આવક (Inward)" : "Inward")
+          : (currentLang === 'gu' ? "વિતરણ (Distribution)" : "Distribution");
+        updateStockInFirebase(val, diff, label);
+      }
+    });
+
+    document.getElementById('dispatchRestockOrderBtn')?.addEventListener('click', () => {
+      const base = (currentBalance !== null) ? currentBalance : 10;
+      const label = currentLang === 'gu' ? "ઇમરજન્સી રીસ્ટોક પુરવઠો (Emergency Restock Inward)" : "Emergency Restock Inward (+50)";
+      updateStockInFirebase(base + 50, 50, label);
+      const t = I18N[currentLang];
+      showToast(t.toastRestockTitle, t.toastRestockDesc, false);
+    });
+
+    document.getElementById('tableSearchInput')?.addEventListener('input', () => renderAuditTable());
+    document.getElementById('actionFilterSelect')?.addEventListener('change', () => renderAuditTable());
+
+    document.getElementById('toggleSoundBtn')?.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      const t = I18N[currentLang];
+      if (soundEnabled) {
+        icon.setAttribute('data-lucide', 'volume-2');
+        icon.className = "w-4 h-4 text-emerald-400";
+        showToast(t.toastSoundOnTitle, t.toastSoundOnDesc, false);
+      } else {
+        icon.setAttribute('data-lucide', 'volume-x');
+        icon.className = "w-4 h-4 text-slate-400";
+        showToast(t.toastSoundOffTitle, t.toastSoundOffDesc, false);
+      }
+      if (window.lucide) lucide.createIcons();
+    });
+
+    // -------------------------------------------------------------
+    // 11. EXPORT CSV
+    // -------------------------------------------------------------
+    document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
+      if (transactions.length === 0) {
+        alert(currentLang === 'gu' ? "નિકાસ કરવા માટે કોઈ ટ્રાન્ઝેક્શન રેકોર્ડ નથી." : "No transaction records to export.");
+        return;
+      }
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Timestamp,Village Name,Action Taken,Packets Changed,Resulting Balance\n";
+
+      transactions.forEach(t => {
+        const row = [
+          `"${t.timestampStr}"`,
+          `"${t.village}"`,
+          `"${t.action}"`,
+          t.change,
+          t.balance
+        ].join(",");
+        csvContent += row + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `PoshanSetu_Audit_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    // -------------------------------------------------------------
+    // 12. EXPORT FORMAL PDF REPORT (JSPDF + AUTOTABLE)
+    // -------------------------------------------------------------
+    document.getElementById('exportPdfBtn')?.addEventListener('click', () => {
+      if (transactions.length === 0) {
+        alert(currentLang === 'gu' ? "નિકાસ કરવા માટે કોઈ ટ્રાન્ઝેક્શન રેકોર્ડ નથી." : "No transaction records to export.");
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert("PDF generator is loading, please try again in a moment.");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4',
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Top Indian Tricolor Ribbon
+      doc.setFillColor(249, 115, 22);
+      doc.rect(0, 0, pageWidth, 4, 'F');
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 4, pageWidth, 3, 'F');
+      doc.setFillColor(22, 163, 74);
+      doc.rect(0, 7, pageWidth, 4, 'F');
+
+      // Gov Navy Header
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 11, pageWidth, 74, 'F');
+
+      doc.setTextColor(251, 191, 36);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GOVERNMENT OF GUJARAT | WCDD (ICDS ANAND DISTRICT)', 40, 32);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.text('POSHANSETU — BALBHOG STOCK & AUDIT REPORT', 40, 52);
+
+      doc.setTextColor(203, 213, 225);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Child Development Project Officer (CDPO) & Collector Office, Anand', 40, 68);
+
+      const currentBal = currentBalance !== null ? currentBalance : (transactions[0]?.balance ?? 0);
+      const isCritical = currentBal < LOW_STOCK_THRESHOLD;
+
+      doc.setFillColor(isCritical ? 220 : 22, isCritical ? 38 : 101, isCritical ? 38 : 52);
+      doc.roundedRect(pageWidth - 175, 26, 135, 24, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text(isCritical ? 'ALERT: LOW STOCK (<15)' : 'STATUS: NORMAL STOCK', pageWidth - 165, 41);
+
+      // Metadata Panel
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(40, 95, pageWidth - 80, 72, 4, 4, 'FD');
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Anganwadi Centre:', 52, 112);
+      doc.text('District / Taluka:', 52, 128);
+      doc.text('Supervisor / Sector:', 52, 144);
+      doc.text('Report Generated:', 52, 160);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 23, 42);
+      doc.text('04 - Vadtal (Centre Code: AW-VAD-04)', 150, 112);
+      doc.text('Anand / Anand Rural (Gujarat)', 150, 128);
+      doc.text('Vadtal-1 Sector (Worker: Smt. Bhavanaben Patel)', 150, 144);
+      doc.text(new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST', 150, 160);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text('Current Balance:', pageWidth - 215, 112);
+      doc.text('Buffer Threshold:', pageWidth - 215, 128);
+      doc.text('Total Audit Logs:', pageWidth - 215, 144);
+      doc.text('Data Endpoint:', pageWidth - 215, 160);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(isCritical ? 220 : 22, isCritical ? 38 : 101, isCritical ? 38 : 52);
+      doc.text(`${currentBal} Packets`, pageWidth - 120, 112);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 23, 42);
+      doc.text('15 Packets', pageWidth - 120, 128);
+      doc.text(`${transactions.length} Transactions`, pageWidth - 120, 144);
+      doc.text('/active_stock RTDB', pageWidth - 120, 160);
+
+      const tableRows = transactions.map((tx, idx) => {
+        let actionClean = tx.action;
+        if (tx.change > 0 || actionClean.toLowerCase().includes('inward') || actionClean.includes('આવક')) {
+          actionClean = 'Inward (+ Stock Received)';
+        } else if (tx.change < 0 || actionClean.toLowerCase().includes('distribution') || actionClean.includes('વિતરણ')) {
+          actionClean = 'Distribution (- Beneficiaries)';
+        } else {
+          actionClean = 'Stock Verified / Initial Sync';
+        }
+
+        const changeStr = tx.change > 0 ? `+${tx.change}` : (tx.change < 0 ? `${tx.change}` : '0');
+        const villageStr = tx.village.includes('વડતાલ') ? '04 - Vadtal (Anand)' : tx.village;
+
+        return [
+          String(idx + 1),
+          tx.timestampStr,
+          villageStr,
+          actionClean,
+          changeStr,
+          `${tx.balance} pkts`,
+        ];
+      });
+
+      doc.autoTable({
+        startY: 180,
+        margin: { left: 40, right: 40 },
+        head: [['#', 'Timestamp (IST)', 'Centre / Village', 'Action Taken', 'Packets Changed', 'Resulting Stock']],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontSize: 8.5,
+          fontStyle: 'bold',
+          halign: 'left',
+        },
+        columnStyles: {
+          0: { cellWidth: 26, halign: 'center' },
+          1: { cellWidth: 105, font: 'courier' },
+          2: { cellWidth: 110 },
+          3: { cellWidth: 150 },
+          4: { cellWidth: 55, halign: 'right', font: 'courier', fontStyle: 'bold' },
+          5: { cellWidth: 69, halign: 'right', font: 'courier', fontStyle: 'bold' },
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 5,
+          textColor: [30, 41, 59],
+          lineColor: [226, 232, 240],
+          lineWidth: 0.5,
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+      });
+
+      const finalY = doc.lastAutoTable?.finalY || 400;
+      let signY = finalY + 45;
+      if (signY > pageHeight - 90) {
+        doc.addPage();
+        signY = 70;
+      }
+
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineDashPattern([2, 2], 0);
+      doc.line(40, signY - 20, pageWidth - 40, signY - 20);
+      doc.setLineDashPattern([], 0);
+
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Signature: Anganwadi Worker', 50, signY);
+      doc.text('Signature: Mukhya Sevika / Supervisor', 210, signY);
+      doc.text('Approved: CDPO / Collector Office Anand', pageWidth - 210, signY);
+
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184);
+      doc.text('Official System Certified Audit Record — PoshanSetu Project | Govt. of Gujarat', 40, pageHeight - 20);
+      doc.text(`Page 1 of 1 · Generated ${new Date().toISOString()}`, pageWidth - 170, pageHeight - 20);
+
+      doc.save(`PoshanSetu_Audit_Report_04_Vadtal_${new Date().toISOString().slice(0, 10)}.pdf`);
+      const t = I18N[currentLang];
+      showToast(t.toastPdfTitle, t.toastPdfDesc, false);
+    });
+
+    // -------------------------------------------------------------
+    // 13. TOAST NOTIFICATION
+    // -------------------------------------------------------------
+    let toastTimeout = null;
+    function showToast(title, msg, isAlert = false) {
+      const toast = document.getElementById('toastNotification');
+      const titleEl = document.getElementById('toastTitle');
+      const msgEl = document.getElementById('toastMsg');
+      const iconContainer = document.getElementById('toastIconContainer');
+
+      if (!toast || !titleEl || !msgEl) return;
+
+      titleEl.textContent = title;
+      msgEl.textContent = msg;
+
+      if (isAlert) {
+        iconContainer.className = "p-1 rounded bg-red-500/20 text-red-400";
+        titleEl.className = "font-bold text-red-300";
+      } else {
+        iconContainer.className = "p-1 rounded bg-amber-500/20 text-amber-400";
+        titleEl.className = "font-bold text-amber-300";
+      }
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 4000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      applyLanguage(currentLang);
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
